@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { fetchPokemonList } from '../api/pokemon';
 import PokemonCard from '../components/PokemonCard';
 import PaginationControls from '../components/PaginationControls';
@@ -11,8 +12,11 @@ type PokemonItem = {
 };
 
 export default function PaginationView() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const page = Number(searchParams.get('page')) || 0;
+
   const [pokemons, setPokemons] = useState<PokemonItem[]>([]);
-  const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [totalCount, setTotalCount] = useState(0);
@@ -25,7 +29,7 @@ export default function PaginationView() {
     try {
       const offset = page * itemsPerPage;
       const res = await fetchPokemonList(itemsPerPage, offset);
-  
+
       const simplified: PokemonItem[] = res.data.results.map((pokemon: { name: string; url: string }) => {
         const id = Number(pokemon.url.split('/').filter(Boolean).pop());
         return {
@@ -34,7 +38,7 @@ export default function PaginationView() {
           imageUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`,
         };
       });
-  
+
       setPokemons(simplified);
       setTotalCount(res.data.count);
     } catch (err) {
@@ -44,27 +48,25 @@ export default function PaginationView() {
       setLoading(false);
     }
   }, [page]);
-  
 
   useEffect(() => {
     loadData();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [loadData]);
-  
 
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   const handleNext = useCallback(() => {
-    setPage(prev => Math.min(prev + 1, totalPages - 1));
-  }, [totalPages]);
+    setSearchParams({ page: String(Math.min(page + 1, totalPages - 1)) });
+  }, [page, totalPages, setSearchParams]);
 
   const handlePrev = useCallback(() => {
-    setPage(prev => Math.max(prev - 1, 0));
-  }, []);
+    setSearchParams({ page: String(Math.max(page - 1, 0)) });
+  }, [page, setSearchParams]);
 
   const handlePageChange = useCallback((newPage: number) => {
-    setPage(newPage);
-  }, []);
+    setSearchParams({ page: String(newPage) });
+  }, [setSearchParams]);
 
   return (
     <Layout>
